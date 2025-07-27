@@ -1,0 +1,7 @@
+---- vis / ericw-tools v0.18.1 ----
+running with 11 threads
+testlevel = 4
+LoadBSPFile: 'test.bsp'
+BSP is version 29
+LoadPortals: couldn't read test.prt
+No vising performed.

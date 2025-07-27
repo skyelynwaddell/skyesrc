@@ -69,17 +69,18 @@ void lights_update()
 {
     float cam_pos[3] = { camera.position.x,camera.position.y,camera.position.z };
     SetShaderValue(sh_light, sh_light.locs[SHADER_LOC_VECTOR_VIEW], cam_pos, SHADER_UNIFORM_VEC3);
+
+    int light_count = map.light_count;
+    float radii[255] = { 0 };
+
     for (int i = 0; i < map.light_count; i++)
     {
+        if (distance_to_player(&map.lights[i].gameobject, RENDER_DISTANCE) == false) continue;
+        
         UpdateLightValues(sh_light, map.lights[i].light);
-    }
-
-    float radii[MAX_LIGHTS] = { 0 };
-    for (int i = 0; i < map.light_count; i++) 
-    {
         radii[i] = map.lights[i].radius;
     }
-    
+
     SetShaderValueV(
         sh_light, 
         radiusLoc, 

@@ -127,6 +127,7 @@ extern float camera_tilt_speed; // how quickly tilt responds
 
 extern int should_camera_tilt;
 extern int should_weapon_bob;
+extern int should_weapon_sway;
 
 extern int global_quit_game;
 extern int global_game_loading;
@@ -189,7 +190,7 @@ extern int BUTTON_INTERACT_PAD;
 // --- Level Settings ---
 #define MAX_ENTITIES 1000 // Maximum entities can be in a room
 #define MAX_ENEMIES 128
-#define MAX_LIGHTS   255  // Maximum lightobjects can be in a room
+#define MAX_LIGHTS   150  // Maximum lightobjects can be in a room
 #define MAX_DARK     0.2  // How dark the room can get without lighting (0 = BLACK)
 
 // --- Gamepads ---

@@ -1,6 +1,7 @@
 #include "skyelib.h"
 #include "global.h"
 #include "weapons.h"
+#include "player.h"
 
 Camera3D camera;
 int camera_mode;
@@ -11,9 +12,9 @@ float camera_bob_amp = 0.02f;
 float camera_bob_speed = 8.4f;
 float bob_offset = 0.0f;
 
-float weapon_bob = 0.006f;
+float weapon_bob = 0.008f;
 float camera_tilt = 0.0f;
-float camera_tilt_max = 0.01f; 
+float camera_tilt_max = 0.04f; 
 float camera_tilt_speed = 8.0f;
 
 /*
@@ -31,6 +32,11 @@ void camera_init()
 }
 
 
+static int was_onground = false;
+static Vector2 lastMouseDelta;
+static float smoothed_look_x = 0.0f;
+static float smoothed_look_y = 0.0f;
+
 /*
 camera_follow_player
 Makes the Camera follow the Player target in First Person
@@ -40,7 +46,7 @@ void camera_follow_player(Camera3D *camera, GameObject *target)
     Vector2 mouseDelta = GetMouseDelta();
     float sensitivity = 0.002f;
 
-    global_cam_yaw -= mouseDelta.x * sensitivity;
+    global_cam_yaw   -= mouseDelta.x * sensitivity;
     global_cam_pitch -= mouseDelta.y * sensitivity;
 
     if (IsGamepadAvailable(GAMEPAD_P1)) // GAMEPAD_PLAYER1
@@ -48,15 +54,30 @@ void camera_follow_player(Camera3D *camera, GameObject *target)
         float look_x = GetGamepadAxisMovement(0, GAMEPAD_AXIS_RIGHT_X);
         float look_y = GetGamepadAxisMovement(0, GAMEPAD_AXIS_RIGHT_Y);
 
-        float deadzone = 0.2f;
+        float deadzone = 0.1f;
         if (fabsf(look_x) < deadzone) look_x = 0.0f;
         if (fabsf(look_y) < deadzone) look_y = 0.0f;
 
-        float joystick_sensitivity = 0.006f;
+        // Optional: re-scale from deadzone to full range
+        float rescale = 1.0f / (1.0f - deadzone);
+        if (look_x != 0.0f) look_x = copysignf((fabsf(look_x) - deadzone) * rescale, look_x);
+        if (look_y != 0.0f) look_y = copysignf((fabsf(look_y) - deadzone) * rescale, look_y);
 
-        global_cam_yaw   -= look_x * joystick_sensitivity;
-        global_cam_pitch -= look_y * joystick_sensitivity;
+        // Sensitivity curve: square the input to scale movement based on input strength
+        look_x = look_x * fabsf(look_x);  // Same as pow(look_x, 2) but cheaper
+        look_y = look_y * fabsf(look_y);
+
+        // Smoothing
+        float smoothing = 0.15f;
+        smoothed_look_x += (look_x - smoothed_look_x) * smoothing;
+        smoothed_look_y += (look_y - smoothed_look_y) * smoothing;
+
+        float joystick_sensitivity = 0.06f; // Final scale factor
+        global_cam_yaw   -= smoothed_look_x * joystick_sensitivity;
+        global_cam_pitch -= smoothed_look_y * joystick_sensitivity;
     }
+
+    lastMouseDelta = Vector2Lerp(lastMouseDelta, mouseDelta, 10.0f * GetFrameTime());
 
     // Clamp pitch between looking straight up and down
     if (global_cam_pitch > PI/2 - 0.01f) global_cam_pitch = PI/2 - 0.01f;
@@ -84,31 +105,72 @@ void camera_follow_player(Camera3D *camera, GameObject *target)
 
     float ls = 0.05; // lerp speed
 
+    float sway_amount = 0;
+    float sway_smooth = 0;
+
+    if (should_weapon_sway)
+    {
+        sway_amount = 0.05f;
+        sway_smooth = 20.0f;
+        // Mouse-based sway
+        Vector3 sway_offset = {
+            -lastMouseDelta.x * sway_amount,
+            lastMouseDelta.y * sway_amount,
+            0.0f
+        };
+
+        if (should_weapon_sway && global_player_onground)
+            viewmodel.position.y = Lerp(viewmodel.position.y, base_viewmodel_pos.y + sway_offset.y, GetFrameTime() * sway_smooth);
+
+        // Apply to viewmodel
+        viewmodel.position.x = Lerp(viewmodel.position.x, base_viewmodel_pos.x + sway_offset.x, GetFrameTime() * sway_smooth);
+    
+        // We hit the ground - show some impact from landing
+        if (was_onground == false && global_player_onground == true && player.gameobject.velocity.y < 0)
+        {
+            viewmodel.position.y -= 0.3;
+        }
+    }
+
+    
     if (VIEWMODEL_POSITION_MODE == false && should_weapon_bob == true)
     {
         float delta = GetFrameTime();
-        if (abs(move_spd) > 2)
+        if (global_player_onground)
         {
-            camera->position.y += bob_offset;
-            camera_bob_phase += delta * camera_bob_speed;
-            viewmodel.position.z += bob_offset * weapon_bob;
+            
+            if (abs(move_spd) > 2)
+            {
+                // Player is on floor, and IS moving
+                // Do the weapon BOB
+                camera->position.y += bob_offset;
+                camera_bob_phase += delta * camera_bob_speed;
+                viewmodel.position.z += bob_offset * weapon_bob;
+                //viewmodel.position.x = Lerp(viewmodel.position.x, base_viewmodel_pos.x, ls);
+                //viewmodel.position.y = Lerp(viewmodel.position.y, base_viewmodel_pos.y, ls);
+            }
+            else
+            {
+                // Player is on floor, not moving
+                // Return weapon to normal pose
+                //viewmodel.position.x = Lerp(viewmodel.position.x, base_viewmodel_pos.x, ls);
+                //viewmodel.position.y = Lerp(viewmodel.position.y, base_viewmodel_pos.y, ls);
+                viewmodel.position.z = Lerp(viewmodel.position.z, base_viewmodel_pos.z, ls);
+                camera_bob_phase = 0.0f;
+            }
         }
         else
         {
-            viewmodel.position.x = Lerp(viewmodel.position.x, base_viewmodel_pos.x, ls);
-            viewmodel.position.y = Lerp(viewmodel.position.y, base_viewmodel_pos.y, ls);
-            viewmodel.position.z = Lerp(viewmodel.position.z, base_viewmodel_pos.z, ls);
-            camera_bob_phase = 0.0f;
-        }
-
-
-        if (!global_player_onground)
-        {
-            bob_offset = 0.0;
-            viewmodel.position.x = Lerp(viewmodel.position.x, base_viewmodel_pos.x, ls);
-            viewmodel.position.y = Lerp(viewmodel.position.y, base_viewmodel_pos.y, ls);
-            viewmodel.position.z = Lerp(viewmodel.position.z, base_viewmodel_pos.z, ls);
-            camera_bob_phase = 0.0f;
+            if (should_weapon_sway)
+            {
+                // Player is in the air
+                // Offset the weapon a bit lower
+                bob_offset = 0.0;
+                //viewmodel.position.x = Lerp(viewmodel.position.x, base_viewmodel_pos.x, ls);
+                viewmodel.position.y = Lerp(viewmodel.position.y, base_viewmodel_pos.y-1, ls);
+                viewmodel.position.z = Lerp(viewmodel.position.z, base_viewmodel_pos.z, ls);
+                camera_bob_phase = 0.0f;
+            }
         }
     }
 
@@ -120,8 +182,8 @@ void camera_follow_player(Camera3D *camera, GameObject *target)
     if (should_camera_tilt)
     {
         // Keyboard
-        if (IsKeyDown(BUTTON_MOVE_LEFT_KEY)) strafe = -1.0f;
-        if (IsKeyDown(BUTTON_MOVE_RIGHT_KEY)) strafe =  1.0f;
+        if (IsKeyDown(BUTTON_MOVE_LEFT_KEY)) strafe = 1.0f;
+        else if (IsKeyDown(BUTTON_MOVE_RIGHT_KEY)) strafe =  -1.0f;
 
         // Gamepad (left stick X axis)
         if (IsGamepadAvailable(GAMEPAD_P1)) {
@@ -138,12 +200,15 @@ void camera_follow_player(Camera3D *camera, GameObject *target)
         }
 
         // Smoothly interpolate tilt for responsiveness
-        camera_tilt = Lerp(camera_tilt, desired_tilt, GetFrameTime() * camera_tilt_speed);
+        if (player_on_wall() == false)
+            camera_tilt = Lerp(camera_tilt, desired_tilt, GetFrameTime() * camera_tilt_speed);
+        else
+            camera_tilt = 0.0f;
     }
 
     // Apply tilt to camera's up vector (roll)
     camera->up = Vector3RotateByAxisAngle((Vector3){0.0f, 1.0f, 0.0f}, camera_get_forward(camera), camera_tilt);
-
+    was_onground = global_player_onground;
 }
 
 

@@ -4,7 +4,7 @@
 {
 "mapversion" "220"
 "classname" "worldspawn"
-"_tb_def" "external:/Users/skye/Documents/github/raylib-trenchbroom-c/gamedata.fgd"
+"_tb_def" "external:/home/skye/Documents/skyesrc/gamedata.fgd"
 "_tb_textures" "gamedata/textures"
 // brush 0
 {
@@ -262,7 +262,7 @@
 // entity 1
 {
 "classname" "info_player_start"
-"origin" "320 -48 88"
+"origin" "336 -48 56"
 }
 // entity 2
 {
@@ -308,9 +308,9 @@
 {
 "classname" "light"
 "origin" "808 440 120"
-"brightness" "0.6"
+"brightness" "1.0"
 "color" "255 255 255"
-"radius" "30"
+"radius" "100"
 "spawnflags" "0"
 "alpha" "10"
 }
@@ -318,9 +318,14 @@
 {
 "classname" "light"
 "origin" "872 -24 152"
-"brightness" "0.6"
-"color" "109 246 153"
-"radius" "20"
+"brightness" "1.0"
+"color" "246 0 0"
+"radius" "30"
 "spawnflags" "0"
 "alpha" "255"
+}
+// entity 8
+{
+"classname" "monster_shotgunner"
+"origin" "464 144 56"
 }

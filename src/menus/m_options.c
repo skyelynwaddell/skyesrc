@@ -34,6 +34,7 @@ static bool _show_fps = false;
 static bool _window_fullscreen = false;
 static bool _should_camera_tilt = false;
 static bool _should_weapon_bob = false;
+static bool _should_weapon_sway = false;
 
 /*
 switch_tab
@@ -65,6 +66,7 @@ static void switch_tab(int new_tab)
     _window_fullscreen = IsWindowFullscreen();
     _should_camera_tilt = should_camera_tilt;
     _should_weapon_bob = should_weapon_bob;
+    _should_weapon_sway = should_weapon_sway;
     _viewmodel_position_mode = VIEWMODEL_POSITION_MODE;
 
     activeTab = new_tab;
@@ -152,8 +154,22 @@ void draw_options_menu(Vector2 position, Vector2 scroll) {
                                             };
                                             
 
+            /**/
             reset_x();
-            newline();  
+            newline();
+
+            DrawText("Fullscreen:",position.x + x + scroll.x, position.y + y + scroll.y, fontsize*gui_scale, WHITE);
+            newcol();
+            newcol();
+
+            if (GuiButton((Rectangle){ position.x + x + scroll.x, position.y + y + scroll.y, 15*gui_scale, 15*gui_scale }, _window_fullscreen ? "#112#" : "" )) {
+                _window_fullscreen = !_window_fullscreen;
+            }
+
+            reset_x();
+            newline();
+            newline();
+            
 
             DrawText("V-Sync:",position.x + x + scroll.x, position.y + y + scroll.y, fontsize*gui_scale, WHITE);
             newcol();
@@ -224,16 +240,18 @@ void draw_options_menu(Vector2 position, Vector2 scroll) {
             reset_x();
             newline();
 
-            DrawText("Fullscreen:",position.x + x + scroll.x, position.y + y + scroll.y, fontsize*gui_scale, WHITE);
+            DrawText("Weapon Sway:",position.x + x + scroll.x, position.y + y + scroll.y, fontsize*gui_scale, WHITE);
             newcol();
             newcol();
 
-            if (GuiButton((Rectangle){ position.x + x + scroll.x, position.y + y + scroll.y, 15*gui_scale, 15*gui_scale }, _window_fullscreen ? "#112#" : "" )) {
-                _window_fullscreen = !_window_fullscreen;
-            }
+            if (GuiButton((Rectangle){ position.x + x + scroll.x, position.y + y + scroll.y, 15*gui_scale, 15*gui_scale }, _should_weapon_sway ? "#112#" : "" )) _should_weapon_sway = !_should_weapon_sway;
 
             reset_x();
             newline();
+
+
+
+
             newline();
             newline();
             if (GuiButton((Rectangle){ position.x + x + scroll.x, position.y + y + scroll.y, 60*gui_scale, 20*gui_scale }, "#9#Cancel" )) {
@@ -277,6 +295,7 @@ void draw_options_menu(Vector2 position, Vector2 scroll) {
                 show_fps = _show_fps;
                 should_camera_tilt = _should_camera_tilt;
                 should_weapon_bob = _should_weapon_bob;
+                should_weapon_sway = _should_weapon_sway;
             }
 
         break;

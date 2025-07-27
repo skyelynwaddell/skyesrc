@@ -16,7 +16,6 @@ Shader sh_viewmodel;
 
 // --- Shader Properties ---
 float radiusLoc; // light radius location in shader
-const char global_player_name[64] = "Player";
 
 // --- Camera ---
 Vector3 global_camera_height_current = {0};
@@ -79,10 +78,16 @@ int BUTTON_INTERACT_PAD        = GAMEPAD_BUTTON_RIGHT_FACE_LEFT;
 // --------------------------------------------------------------------
 
 // player globals
+const char global_player_name[64] = "Player";
 Vector3 global_player_spawn = (Vector3){ 8.0f, 3.0f, 7.0f };
 int global_player_onground = false;
 int global_player_crouching = false;
 int global_player_shooting = false;
+int global_player_moving = false;
+int global_player_onXwall = false;
+int global_player_onZwall = false;
+
+int player_on_wall() { return global_player_onXwall || global_player_onZwall; }
 
 /*
 pause_toggle

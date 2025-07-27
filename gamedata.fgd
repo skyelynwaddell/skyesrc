@@ -27,13 +27,7 @@
 ]
 
 @SolidClass base(brush) = brush_default : "All brushes must inherit from this if to be culled" []
-
-//
-// base marker definitions
-//
-
 @baseclass = Angle [ angle(integer) : "Direction" ]
-
 @baseclass = Appearflags [
 	spawnflags(Flags) =
 	[
@@ -43,7 +37,6 @@
 		2048 : "Not in Deathmatch" : 0
 	]
 ]
-
 @baseclass = Targetname [ targetname(target_source) : "Name" ]
 @baseclass = Target [
 	target(target_destination) : "Target"
@@ -54,8 +47,13 @@
 // player starts, deathmatch, coop, teleport
 //
 
+// Player Class
 @baseclass base(Appearflags) size(-16 -16 -24, 16 16 32)
 	color(0 255 0) model({ "path": "models/9mm.glb" }) = PlayerClass []
+
+// Monster Class
+@baseclass base(Appearflags) size(-16 -16 -24, 16 16 32)
+	color(0 255 0) model({ "path": "models/9mm.glb" }) = MonsterClass []
 
 @PointClass base(PlayerClass) = info_player_start : "Player 1 start" []
 @PointClass base(PlayerClass) = info_player_coop : "Player cooperative start" []
@@ -68,6 +66,7 @@
 	targetname(target_source) : "Name"
 ]
 
+//Light
 @PointClass base(Appearflags) = light : "Light" 
 [
 	color(color255) : "Color" : "255 255 255"
@@ -76,3 +75,6 @@
 	radius(float) : "Radius" : 40.0 : "How big the light is."
 	
 ]
+
+//Monster Shotgunner
+@PointClass base(MonsterClass) = monster_shotgunner : "Monster Shotgunner" []

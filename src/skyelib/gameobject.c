@@ -202,8 +202,14 @@ void check_collisions(GameObject *obj, int is_player, COLLISION_MASK mask)
 
     if (!place_meeting_solid(obj, mask)) {
         obj->position.x += moveX.x;
+
+        if (is_player) 
+            global_player_onXwall = false;
     } else {
         obj->velocity.x = 0.0f;
+
+        if (is_player)
+            global_player_onXwall = true;
     }
 
     // ---- Z axis ----
@@ -213,8 +219,14 @@ void check_collisions(GameObject *obj, int is_player, COLLISION_MASK mask)
 
     if (!place_meeting_solid(obj, mask)) {
         obj->position.z += moveZ.z;
+
+        if (is_player)
+            global_player_onZwall = false;
     } else {
         obj->velocity.z = 0.0f;
+
+        if (is_player)
+            global_player_onZwall = true;
     }
 
     // Final update of the collision box

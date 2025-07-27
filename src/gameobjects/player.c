@@ -230,6 +230,7 @@ void player_movement()
 
     if (input_len > 0.0f)
     {
+        global_player_moving = true;
         Vector3 desired = Vector3Scale(move_dir, player.gameobject.speed * input_len);
         Vector3 delta = Vector3Subtract(desired, (Vector3){ player.gameobject.velocity.x, 0.0f, player.gameobject.velocity.z });
         Vector3 accel_step = Vector3Scale(delta, accel * dt);
@@ -239,6 +240,7 @@ void player_movement()
     else
     {
         // apply friction only when no input
+        global_player_moving = false;
         float current_fric = global_player_onground ? fric : air_fric;
         player.gameobject.velocity.x = Lerp(player.gameobject.velocity.x, 0.0f, current_fric * dt);
         player.gameobject.velocity.z = Lerp(player.gameobject.velocity.z, 0.0f, current_fric * dt);
@@ -263,6 +265,7 @@ Called to handle when / if the player CAN jump
 */
 void player_handle_jump()
 {
+
     // jump
     if (((GetMouseWheelMove() < 0) || IsKeyPressed(BUTTON_JUMP_KEY) || (IsGamepadButtonPressed(GAMEPAD_P1, BUTTON_JUMP_PAD))) && global_player_onground)
         player_jump();

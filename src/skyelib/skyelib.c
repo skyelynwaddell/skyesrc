@@ -29,6 +29,7 @@ float gui_scale = 1.8;
 
 int should_camera_tilt = true;
 int should_weapon_bob = true;
+int should_weapon_sway = true;
 bool show_fps = true;
 
 // floating window properties

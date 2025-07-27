@@ -1,0 +1,67 @@
+---- qbsp / ericw-tools v0.18.1 ----
+Input file: test.map
+Output file: test.bsp
+
+---- LoadMapFile ----
+*** WARNING 06: No info_player_deathmatch entities in level
+          168 faces
+           28 brushes
+            9 entities
+            3 unique texnames
+           38 texinfo
+
+*** WARNING 00: No wad or _wad key exists in the worldmodel
+Processing hull 0...
+---- Brush_LoadEntity ----
+           28 brushes
+           53 planes
+---- CSGFaces ----
+          168 brushfaces
+          186 csgfaces
+          165 mergedfaces
+---- SolidBSP ----
+          277 split nodes
+           94 solid leafs
+          184 empty leafs
+            0 water leafs
+            0 detail leafs
+            0 detail illusionary leafs
+            0 detail fence leafs
+            0 illusionary visblocker leafs
+          532 leaffaces
+          517 nodefaces
+---- Portalize ----
+          184 vis leafs
+          184 vis clusters
+          503 vis portals
+---- FillOutside ----
+*** WARNING 10: Reached occupant at (-120 72 120), no filling performed.
+Leak file written to test.pts
+---- MakeFaceEdges ----
+---- GrowRegions ----
+Processing hull 1...
+*** WARNING 10: Reached occupant at (-120 72 120), no filling performed.
+Processing hull 2...
+*** WARNING 10: Reached occupant at (-120 72 120), no filling performed.
+*** WARNING 16: Texture checkers not found
+*** WARNING 16: Texture __TB_empty not found
+*** WARNING 16: Texture explosives3 not found
+---- WriteBSPFile ----
+Wrote test.bsp
+          121 planes             2420
+          621 vertexes           7452
+          277 nodes              6648
+           34 texinfo            1360
+          517 faces             10340
+          597 clipnodes          4776
+          185 leafs              5180
+          532 marksurfaces       1064
+         2068 surfedges          8272
+         1308 edges              5232
+            3 textures             16
+              lightdata             0
+              visdata               0
+              entdata            1052
+
+0.009 seconds elapsed
+Peak memory usage: 2701944 (2.6M)

@@ -12,15 +12,6 @@ int gameloop()
     // -----------------------------
     init();
 
-    // --- Test Monsters ---
-    Vector3 pos = (Vector3){global_player_spawn.x - 10, global_player_spawn.y, global_player_spawn.z - 10};
-    enemy_create(ENEMY_SHOTGUNNER, pos);
-
-    pos = (Vector3){global_player_spawn.x - 10, global_player_spawn.y, global_player_spawn.z - 15};
-    Enemy *en2 = enemy_create(ENEMY_SHOTGUNNER, pos);
-    en2->model.current_anim = ANIM_SHOTGUNNER_RUN;
-    //--------------------------
-
     // --- ENET Client Initialization ---
     // TODO : Move this to a multiplayer connection screen
     // after main menu is made

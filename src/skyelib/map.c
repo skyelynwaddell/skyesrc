@@ -1,7 +1,10 @@
 #include "skyelib.h"
 #include "global.h"
+#include "enemy.h"
+#include "bsp.h"
 
-Map map; // stores the currently loaded map
+Map map = {0}; // stores the currently loaded map
+BspFile bsp_file = {0};
 
 /*
 parse_map
@@ -10,6 +13,9 @@ filename[const char*] -- the filename of the map to be loaded ie. "myamazingmap.
 */
 int map_parse(const char* filename)
 {
+
+    bsp_load(&bsp_file, "gamedata/maps/test.bsp");
+
     global_paused = true;
     char fullpath[256];
 
@@ -150,6 +156,18 @@ int map_parse(const char* filename)
 
                         // create & store light object
                         map.lights[map.light_count++] = new_light; 
+                    }
+
+                    // monster_shotgunner
+                    if (string_equals(current_entity.classname, "monster_shotgunner"))
+                    {
+                        enemy_create(
+                            ENEMY_SHOTGUNNER, 
+                            trench_to_raylib_origin((Vector3){
+                                current_entity.origin.x,
+                                current_entity.origin.y + PLAYER_SPAWN_GAP,
+                                current_entity.origin.z
+                        }));
                     }
                 /*
                 ----------------------------------
