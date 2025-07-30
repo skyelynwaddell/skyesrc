@@ -6,26 +6,36 @@
 place_meeting
 returns TRUE if GameObject is colliding with a solid object
 */
-int place_meeting_solid(GameObject *object, COLLISION_MASK mask)
+int place_meeting_solid(GameObject *object, COLLISION_MASK mask, int is_player)
 {
     // --- Map Collisions ---
     if (mask == COLLISION_MASK_ALL || mask == COLLISION_MASK_SOLID)
     {
         for (int i=0; i < map.model_count; i++)
         {
-        Geometry *geo = &map.models[i];
-        Vector3 center = Vector3Lerp(geo->bounds.min, geo->bounds.max, 0.5f);
-        float dist = Vector3Distance(center, object->position);
-        if (dist > COLLISION_DISTANCE) continue; // too far to care
+            Geometry *geo = &map.models[i];
+            if (is_player)
+                global_player_inwater = false;
 
-        // potential collision -- do cheap math first
-        if ((CheckCollisionBoxes(object->collision_box.bounding_box, map.models[i].bounds)) == false) 
-            continue;
+            Vector3 center = Vector3Lerp(geo->bounds.min, geo->bounds.max, 0.5f);
+            float dist = Vector3Distance(center, object->position);
+            if (dist > COLLISION_DISTANCE) continue; // too far to care
 
-        //actual collision -- do expensive math
-        if (CheckCollisionBoxesExt(object->collision_box.bounding_box, map.models[i].collision))
-            return true;
+            // potential collision -- do cheap math first
+            if ((CheckCollisionBoxes(object->collision_box.bounding_box, map.models[i].bounds)) == false) 
+                continue;
 
+            //actual collision -- do expensive math
+            if (CheckCollisionBoxesExt(object->collision_box.bounding_box, map.models[i].collision))
+            {
+                if (string_equals(geo->func->classname, "func_water") && is_player)
+                {
+                    global_player_inwater = true;
+                    return false;
+                }
+
+                return true;
+            }
         }
     }
 
@@ -149,7 +159,8 @@ void apply_gravity(GameObject *obj)
         obj->velocity = Vector3Zero();
         return;
     }
-    obj->velocity.y += obj->gravity * GetFrameTime();
+    int _grvty = global_player_inwater ? obj->gravity/2 : obj->gravity;
+    obj->velocity.y += _grvty * GetFrameTime();
 }
 
 
@@ -162,19 +173,23 @@ void check_collisions(GameObject *obj, int is_player, COLLISION_MASK mask)
     Vector3 original_pos = obj->position;
     float dt = GetFrameTime();
 
+
     // ---- Y axis (gravity + jump) ----
     Vector3 moveY = { 0.0f, obj->velocity.y * dt, 0.0f };
     Vector3 testY = Vector3Add(obj->position, moveY);
     collisionbox_set_position(&obj->collision_box, testY);
 
-    if (!place_meeting_solid(obj, mask)) {
+    if (!place_meeting_solid(obj, mask, is_player)) {
         obj->position.y += moveY.y;
         
         if (is_player) 
             global_player_onground = false;
     } else {
         if (obj->velocity.y < 0 && is_player) 
+        {
             global_player_onground = true;
+            global_player_crouchboost = true;
+        }
 
         obj->velocity.y = 0.0f;
     }
@@ -185,7 +200,7 @@ void check_collisions(GameObject *obj, int is_player, COLLISION_MASK mask)
         Vector3 ground_check_pos = Vector3Add(obj->position, (Vector3){0.0f, -ground_check_offset, 0.0f});
         collisionbox_set_position(&obj->collision_box, ground_check_pos);
 
-        if (place_meeting_solid(obj, mask)) {
+        if (place_meeting_solid(obj, mask, is_player)) {
             global_player_onground = true;
         } else {
             global_player_onground = false;
@@ -200,16 +215,24 @@ void check_collisions(GameObject *obj, int is_player, COLLISION_MASK mask)
     Vector3 testX = Vector3Add(obj->position, moveX);
     collisionbox_set_position(&obj->collision_box, testX);
 
-    if (!place_meeting_solid(obj, mask)) {
+    if (!place_meeting_solid(obj, mask, is_player)) {
         obj->position.x += moveX.x;
-
-        if (is_player) 
-            global_player_onXwall = false;
+        if (is_player) global_player_onXwall = false;
     } else {
-        obj->velocity.x = 0.0f;
+        // Try to step up
+        Vector3 tryStep = obj->position;
+        tryStep.y += PLAYER_STEP_HEIGHT;
+        tryStep.x += moveX.x;
 
-        if (is_player)
-            global_player_onXwall = true;
+        collisionbox_set_position(&obj->collision_box, tryStep);
+        if (!place_meeting_solid(obj, mask, is_player)) {
+            obj->position = tryStep;
+            obj->velocity.y = 0.0f;
+            if (is_player) global_player_onXwall = false;
+        } else {
+            obj->velocity.x = 0.0f;
+            if (is_player) global_player_onXwall = true;
+        }
     }
 
     // ---- Z axis ----
@@ -217,16 +240,26 @@ void check_collisions(GameObject *obj, int is_player, COLLISION_MASK mask)
     Vector3 testZ = Vector3Add(obj->position, moveZ);
     collisionbox_set_position(&obj->collision_box, testZ);
 
-    if (!place_meeting_solid(obj, mask)) {
+    if (!place_meeting_solid(obj, mask, is_player)) {
         obj->position.z += moveZ.z;
 
         if (is_player)
             global_player_onZwall = false;
     } else {
-        obj->velocity.z = 0.0f;
+        // Try to step up
+        Vector3 tryStep = obj->position;
+        tryStep.y += PLAYER_STEP_HEIGHT;
+        tryStep.z += moveZ.z;
 
-        if (is_player)
-            global_player_onZwall = true;
+        collisionbox_set_position(&obj->collision_box, tryStep);
+        if (!place_meeting_solid(obj, mask, is_player)) {
+            obj->position = tryStep;
+            obj->velocity.y = 0.0f;
+            if (is_player) global_player_onZwall = false;
+        } else {
+            obj->velocity.z = 0.0f;
+            if (is_player) global_player_onZwall = true;
+        }
     }
 
     // Final update of the collision box

@@ -1,4 +1,5 @@
 #include "skyelib.h"
+#include "global.h"
 
 /*
 collisionbox_set
@@ -21,6 +22,7 @@ or else no affect will be made to the collisionbox !
 void collisionbox_update_aabb(CollisionBox *box)
 {
     Vector3 half = Vector3Scale(box->size, 0.5f * box->scale);
+
     box->bounding_box.min = Vector3Subtract(box->position, half);
     box->bounding_box.max = Vector3Add(box->position, half);
 }

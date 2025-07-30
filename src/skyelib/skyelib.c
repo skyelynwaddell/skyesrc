@@ -1,5 +1,6 @@
 #define RAYGUI_IMPLEMENTATION
 #include "skyelib.h"
+#include "global.h"
 
 // Server Properties
 char SERVER_IP[64] = "127.0.0.1";
@@ -26,6 +27,10 @@ int FONT_SIZE_DEFAULT = 11;
 int fontsize = 11;
 float initial_gui_scale = 1.8;
 float gui_scale = 1.8;
+
+int MAX_BULLET_HOLES = 24;
+Decal bullet_holes[24];
+int decal_count = 0;
 
 int should_camera_tilt = true;
 int should_weapon_bob = true;
@@ -453,4 +458,102 @@ const char *rlGetVersionString(void)
         case RL_OPENGL_ES_30: return "OpenGL ES: v3.0";
         default: return "OpenGL";
     }
+}
+
+
+/*
+raycast_check_triangle
+Checks if the Raycast is intersecting with a triangle
+for the Brush raycast detection
+*/
+int raycast_check_triangle(Ray ray, Vector3 v0, Vector3 v1, Vector3 v2, float *outDistance, Vector3 *outPoint) {
+    Vector3 edge1 = Vector3Subtract(v1, v0);
+    Vector3 edge2 = Vector3Subtract(v2, v0);
+    Vector3 h = Vector3CrossProduct(ray.direction, edge2);
+    float a = Vector3DotProduct(edge1, h);
+
+    if (a > -EPSILON && a < EPSILON) return false;  // Ray is parallel
+
+    float f = 1.0f / a;
+    Vector3 s = Vector3Subtract(ray.position, v0);
+    float u = f * Vector3DotProduct(s, h);
+    if (u < 0.0f || u > 1.0f) return false;
+
+    Vector3 q = Vector3CrossProduct(s, edge1);
+    float v = f * Vector3DotProduct(ray.direction, q);
+    if (v < 0.0f || u + v > 1.0f) return false;
+
+    float t = f * Vector3DotProduct(edge2, q);
+    if (t > EPSILON) {
+        if (outDistance) *outDistance = t;
+        if (outPoint) *outPoint = Vector3Add(ray.position, Vector3Scale(ray.direction, t));
+        return true;
+    }
+
+    return false;
+}
+
+
+/*
+raycast_check_poly
+Checks if the raycast is intersecting with
+a CollisionPolygon
+*/
+int raycast_check_poly(CollisionPolygon poly)
+{
+    bool hit_any = false;
+    float closest_distance = global_raycast.blocked_distance;
+    Vector3 closest_point = { 0 };
+    Vector3 closest_normal = { 0 };
+
+    for (int i = 0; i < poly.count; i++)
+    {
+        Triangle tri = poly.triangles[i];
+        float hit_distance;
+        Vector3 hit_point;
+
+        if (raycast_check_triangle(global_raycast.ray, tri.a, tri.b, tri.c, &hit_distance, &hit_point))
+        {
+            if (hit_distance < closest_distance) {
+                // Compute the normal here
+                Vector3 edge1 = Vector3Subtract(tri.b, tri.a);
+                Vector3 edge2 = Vector3Subtract(tri.c, tri.a);
+                Vector3 normal = Vector3Normalize(Vector3CrossProduct(edge1, edge2));
+
+                // Store closest hit
+                closest_distance = hit_distance;
+                closest_point = hit_point;
+                closest_normal = normal;
+                hit_any = true;
+            }
+        }
+    }
+
+    if (hit_any) {
+        global_raycast.hit_point = closest_point;
+        global_raycast.hit_normal = closest_normal;
+        global_raycast.has_hit = true;
+        global_raycast.blocked_distance = closest_distance;
+
+        return true;
+    }
+
+    return false;
+}
+
+static int next_bullethole = 0;
+void decal_create_bullethole(Vector3 position, Vector3 normal, float size)
+{
+    float offset = 0.04f; // TODO : Figure out A GOOD WAY how to make decals never overlap or clip eachother
+    Vector3 adjusted_position = Vector3Add(position, Vector3Scale(normal, offset));
+
+    Texture2D texture = texture_get_cached("decbul3");
+    Decal *bh = &bullet_holes[next_bullethole];
+    bh->position = adjusted_position;
+    bh->normal = Vector3Negate(normal);
+    bh->texture = texture;
+    bh->size = size;
+    bh->active = true;
+
+    next_bullethole = (next_bullethole + 1) % MAX_BULLET_HOLES;
 }

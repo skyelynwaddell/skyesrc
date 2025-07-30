@@ -114,7 +114,7 @@ extern int raygui_windowbox_statusbar_height;
 extern int raygui_window_closebutton_size;
 
 #define CAMERA_HEIGHT_DEFAULT (Vector3){0.0f, 3.5f, 0.0f} 
-#define CAMERA_HEIGHT_CROUCH  (Vector3){0.0f, -2.0f, 0.0f}
+#define CAMERA_HEIGHT_CROUCH  (Vector3){0.0f, 1.0f, 0.0f}
 extern float global_cam_yaw;    // left/right
 extern float global_cam_pitch;  // up/down
 extern Vector3 global_camera_height_current;
@@ -189,7 +189,7 @@ extern int BUTTON_INTERACT_PAD;
 
 // --- Level Settings ---
 #define MAX_ENTITIES 1000 // Maximum entities can be in a room
-#define MAX_ENEMIES 128
+#define MAX_ENEMIES 1000
 #define MAX_LIGHTS   150  // Maximum lightobjects can be in a room
 #define MAX_DARK     0.2  // How dark the room can get without lighting (0 = BLACK)
 
@@ -262,46 +262,6 @@ typedef struct CollisionPolygon {
     int count;
 } CollisionPolygon;
 
-typedef struct BrushFace {
-    // Defines the position, size, and directions of the infinite plane
-    Vector3 pos_1;    // [ x y z ] Origin Point of the plane --- The anchor point / position of the plane
-    Vector3 pos_2;    // [ x y z ] with pos_1 defines the first infinite direction of the plane
-    Vector3 pos_3;    // [ x y z ] with pos_1 defines the second infinite direction of the plane
-
-    // with all the infinite planes in a brush we can clip all the geometry wherever 
-    // any of the infinite planes intersect with eachother to form the convex polygon.
-    
-    // texture data for a brush face
-    char texture[64]; // texture string name (not including filetype)
-
-    Vector4 uv_s; // [ Ux Uy Uz Uoffset ]
-    Vector4 uv_t; // [ Vx Vy Vz Voffset ]
-
-    int uv_rotation; // texture rotation degrees
-    int u_scale;     // horizontal texture scale
-    int v_scale;     // vertical texture scale
-
-} BrushFace;
-
-typedef struct Brush {
-    int brush_face_count;
-    BrushFace brush_faces[BRUSH_FACE_COUNT];
-    Polygon polys[BRUSH_FACE_COUNT];
-} Brush;
-
-typedef struct Frustum {
-    Vector4 left, right, top, bottom, near, far;
-} Frustum;
-
-typedef struct Geometry {
-    Model model;
-    BoundingBox bounds;
-    CollisionPolygon collision;
-    Vector3 position;
-    int visible;
-    float bounding_radius; // for sphere collision checks
-} Geometry;
-
 typedef struct CollisionBox {
     Vector3 position;
     Vector3 size;
@@ -313,6 +273,8 @@ typedef struct Raycast {
     Ray ray;
     bool has_hit;
     float blocked_distance;
+    Vector3 hit_point;
+    Vector3 hit_normal;
 } Raycast;
 extern Raycast global_raycast;
 
@@ -327,22 +289,87 @@ typedef struct GameObject {
     int is_hit;
 } GameObject;
 
-typedef struct Vector3Double {
-    double x;
-    double y;
-    double z;
-} Vector3Double;
-
 #include "lights.h" // dont move
 typedef struct Entity {
     char classname[64];
     Vector3 origin;
 
-    // light properties
+    // light
     Color color;
     float brightness;
     float radius;
+
+    // func_water
+    int is_dangerous;
+    float alpha;
 } Entity;
+
+#include "materials.h"
+
+typedef struct BrushFace {
+    // Defines the position, size, and directions of the infinite plane
+    Vector3 pos_1;    // [ x y z ] Origin Point of the plane --- The anchor point / position of the plane
+    Vector3 pos_2;    // [ x y z ] with pos_1 defines the first infinite direction of the plane
+    Vector3 pos_3;    // [ x y z ] with pos_1 defines the second infinite direction of the plane
+
+    // with all the infinite planes in a brush we can clip all the geometry wherever 
+    // any of the infinite planes intersect with eachother to form the convex polygon.
+    
+    char texture[64]; // texture string name (not including filetype)
+
+    Vector4 uv_s; // [ Ux Uy Uz Uoffset ]
+    Vector4 uv_t; // [ Vx Vy Vz Voffset ]
+
+    int uv_rotation; // texture rotation degrees
+    float u_scale;     // horizontal texture scale
+    float v_scale;     // vertical texture scale
+
+} BrushFace;
+
+
+
+typedef struct Brush {
+    int brush_face_count;
+    BrushFace brush_faces[BRUSH_FACE_COUNT];
+    Polygon polys[BRUSH_FACE_COUNT];
+    Entity func;
+} Brush;
+
+typedef struct Decal {
+    Vector3 position;
+    Vector3 normal;
+    float size;
+    Texture2D texture;
+    int active;
+} Decal;
+extern int MAX_BULLET_HOLES;
+extern Decal bullet_holes[];
+extern int decal_count;
+
+typedef struct Frustum {
+    Vector4 left, right, top, bottom, near, far;
+} Frustum;
+
+typedef struct Geometry {
+    Model model;
+    BoundingBox bounds;
+    CollisionPolygon collision;
+    Vector3 position;
+    int visible;
+    int was_visible_lastframe;
+    float bounding_radius; // for sphere collision checks
+
+    Entity *func;
+    sMaterial *material;
+} Geometry;
+void material_to_geometry(Geometry *geometry, const char *material_name);
+
+
+typedef struct Vector3Double {
+    double x;
+    double y;
+    double z;
+} Vector3Double;
 
 typedef struct TextureCacheEntry {
     char name[64];
@@ -401,7 +428,7 @@ void smodel_update_position(GameObject *obj, sModel *model, Vector3 offset);
 void smodel_animate(sModel *model, int loop);
 
 // GameObject
-int place_meeting_solid(GameObject *object, COLLISION_MASK mask);
+int place_meeting_solid(GameObject *object, COLLISION_MASK mask, int is_player);
 int CheckCollisionBoxesExt(BoundingBox, CollisionPolygon shape);
 int check_AABB_triangle_SAT(BoundingBox box, Triangle tri);
 void apply_gravity(GameObject *obj);
@@ -495,6 +522,12 @@ void window_check_for_resize();
 int game_is_running();
 char *trim(char *str);
 
+int raycast_check_triangle(Ray ray, Vector3 v0, Vector3 v1, Vector3 v2, float *outDistance, Vector3 *outPoint);
+int raycast_check_poly(CollisionPolygon poly);
+void decal_create_bullethole(Vector3 position, Vector3 normal, float size);
+
 #include "map.h" // dont move
+
+
 
 #endif // SKYELIB_H

@@ -49,7 +49,7 @@ static void player_shoot()
     smodel_animation_change(&viewmodel.model,weapons[current_weapon].anim_shoot);
     shoot_cooldown = weapons[current_weapon].shoot_cooldown;
     anim_cooldown = weapons[current_weapon].anim_duration;
-
+    decal_create_bullethole(global_raycast.hit_point, global_raycast.hit_normal, 0.6f);
 }
 
 static int reloading = false;
@@ -60,7 +60,6 @@ Handles if the player can shoot, and the button presses
 */
 static void player_handle_shoot(float delta)
 {
-
     if (reloading) return;
 
     if (anim_cooldown > 0){
@@ -122,7 +121,10 @@ Called every Tick
 */
 void player_update()
 {
+
     check_collisions(&player, true, COLLISION_MASK_ALL);
+    player_handle_crouch();
+
 
     if (global_paused || global_game_loading || global_console_open) 
     {
@@ -134,7 +136,6 @@ void player_update()
 
     player_handle_reload();
     player_handle_shoot(delta);
-    player_handle_crouch();
     player_movement();
     apply_gravity(&player);
     player_handle_jump();
@@ -166,18 +167,62 @@ void player_handle_crouch()
 {
     if (IsKeyPressed(BUTTON_CROUCH_KEY) || IsGamepadButtonPressed(GAMEPAD_P1, BUTTON_CROUCH_PAD))
     {
-        if (global_player_crouching == false)
+        float old_height = player.gameobject.collision_box.size.y;
+        float center_y = player.gameobject.position.y;
+        float feet_y = center_y - (old_height * 0.5f);  // get current bottom of box
+
+        if (!global_player_crouching)
         {
             global_player_crouching = true;
             global_camera_height = CAMERA_HEIGHT_CROUCH;
+
+            player.gameobject.collision_box.size.y = PLAYER_HEIGHT * 0.34f;
+            float new_height = player.gameobject.collision_box.size.y;
+
+            // Adjust position to keep feet locked
+            player.gameobject.position.y = feet_y + (new_height * 0.5f);
+
+            if (global_player_crouchboost && !global_player_onground)
+            {
+                player.gameobject.velocity.y = 20;
+                global_player_crouchboost = false;
+            }
         }
         else
         {
-            global_player_crouching = false;
-            global_camera_height = CAMERA_HEIGHT_DEFAULT;
+            // Optional: check if headroom is clear
+
+            // Check if there's room to stand up
+            CollisionBox original_box = player.gameobject.collision_box;
+            float test_height = PLAYER_HEIGHT;
+            Vector3 test_pos = { player.gameobject.position.x, feet_y + (test_height * 0.5f), player.gameobject.position.z };
+
+            // Create a test box for standing height
+            player.gameobject.collision_box.size.y = test_height;
+            collisionbox_set_position(&player.gameobject.collision_box, test_pos);
+
+            if (!place_meeting_solid(&player.gameobject, COLLISION_MASK_SOLID, 1)) // 1 = is_player
+            {
+                // Room to stand up
+                global_player_crouching = false;
+                global_camera_height = CAMERA_HEIGHT_DEFAULT;
+
+                player.gameobject.collision_box.size.y = test_height;
+                player.gameobject.position.y = test_pos.y;
+            }
+            else
+            {
+                // Blocked: restore original box
+                player.gameobject.collision_box = original_box;
+                collisionbox_set_position(&player.gameobject.collision_box, player.gameobject.position);
+            }
+
         }
-    }  
+    }
 }
+
+
+
 
 
 
@@ -255,6 +300,10 @@ Call this to invoke the player jumping into the air
 void player_jump()
 {
     player.gameobject.velocity.y = player.jump_height;
+
+    if (global_player_inwater) 
+        return;
+
     global_player_onground = false;
 }
 

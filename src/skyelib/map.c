@@ -14,7 +14,7 @@ filename[const char*] -- the filename of the map to be loaded ie. "myamazingmap.
 int map_parse(const char* filename)
 {
 
-    bsp_load(&bsp_file, "gamedata/maps/test.bsp");
+    //bsp_load(&bsp_file, "gamedata/maps/test.bsp");
 
     global_paused = true;
     char fullpath[256];
@@ -116,6 +116,7 @@ int map_parse(const char* filename)
         {
             if (in_brush)
             {
+                current_brush.func = current_entity;
                 if (map.brush_count < MAX_BRUSHES) 
                     map.brushes[map.brush_count++] = current_brush;
                 in_brush = false;
@@ -140,23 +141,23 @@ int map_parse(const char* filename)
                     }
 
                     // light
-                    if (string_equals(current_entity.classname, "light"))
-                    {
-                        LightObject new_light = light_create(
-                            (Color){
-                                current_entity.color.r,
-                                current_entity.color.g,
-                                current_entity.color.b,
-                                current_entity.color.a
-                            },
-                            (float)current_entity.brightness,
-                            trench_to_raylib_origin(current_entity.origin),
-                            (float)current_entity.radius
-                        );
+                    // if (string_equals(current_entity.classname, "light"))
+                    // {
+                    //     LightObject new_light = light_create(
+                    //         (Color){
+                    //             current_entity.color.r,
+                    //             current_entity.color.g,
+                    //             current_entity.color.b,
+                    //             current_entity.color.a
+                    //         },
+                    //         (float)current_entity.brightness,
+                    //         trench_to_raylib_origin(current_entity.origin),
+                    //         (float)current_entity.radius
+                    //     );
 
-                        // create & store light object
-                        map.lights[map.light_count++] = new_light; 
-                    }
+                    //     // create & store light object
+                    //     map.lights[map.light_count++] = new_light; 
+                    // }
 
                     // monster_shotgunner
                     if (string_equals(current_entity.classname, "monster_shotgunner"))
@@ -176,6 +177,7 @@ int map_parse(const char* filename)
                 // Add Entity to array
                 if (map.entity_count < MAX_ENTITIES) 
                     map.entities[map.entity_count++] = current_entity;
+
                 in_entity = false;
             }
             continue;
@@ -260,7 +262,7 @@ int map_parse(const char* filename)
                         float a;
                         if (sscanf(value, "%f", &a) == 1) 
                         {
-                        current_entity.color.a = (unsigned char)a;
+                            current_entity.alpha = a;
                         }
                     }
 
@@ -272,6 +274,13 @@ int map_parse(const char* filename)
                     // radius
                     if (string_equals(key, "radius"))
                         sscanf(value, "%f", &current_entity.radius);
+
+                    // is_dangerous
+                    if (string_equals(key, "is_dangerous"))
+                        sscanf(value, "%d", &current_entity.is_dangerous);
+
+
+                    
 
                 /*
                 ----------------------------------
@@ -293,7 +302,7 @@ int map_parse(const char* filename)
             char texture_name[64];
 
             int matched = sscanf(trimmed,
-                "( %f %f %f ) ( %f %f %f ) ( %f %f %f ) %63s [ %f %f %f %f ] [ %f %f %f %f ] %i %i %i",
+                "( %f %f %f ) ( %f %f %f ) ( %f %f %f ) %63s [ %f %f %f %f ] [ %f %f %f %f ] %i %f %f",
                 &brushface.pos_1.x, &brushface.pos_1.y, &brushface.pos_1.z,
                 &brushface.pos_2.x, &brushface.pos_2.y, &brushface.pos_2.z,
                 &brushface.pos_3.x, &brushface.pos_3.y, &brushface.pos_3.z,
@@ -362,6 +371,7 @@ int map_parse(const char* filename)
 }
 
 
+
 /*
 map_create_models
 -- creates a model from a polygonal brush
@@ -384,8 +394,6 @@ void map_create_models()
 
             if (poly->vertex_count < 3) continue;
 
-            Texture2D texture = texture_get_cached(face->texture);
-
             // Centroid calculation (raw)
             Vector3 centroid = {0};
             for (int i = 0; i < poly->vertex_count; i++) 
@@ -400,6 +408,7 @@ void map_create_models()
 
             mesh.vertices = (float *)MemAlloc(mesh.vertexCount * 3 * sizeof(float));
             mesh.texcoords = (float *)MemAlloc(mesh.vertexCount * 2 * sizeof(float));
+            mesh.normals  = (float *)MemAlloc(mesh.vertexCount * 3 * sizeof(float));  // <-- ADD THIS
 
             int index = 0;
             for (int i = 0; i < triangle_count; i++) {
@@ -408,6 +417,11 @@ void map_create_models()
                     poly->vertices[i],
                     centroid
                 };
+
+                // Calculate triangle normal
+                Vector3 edge1 = Vector3Subtract(verts[1], verts[0]);
+                Vector3 edge2 = Vector3Subtract(verts[2], verts[0]);
+                Vector3 normal = Vector3Normalize(Vector3CrossProduct(edge1, edge2));  // <-- FACE NORMAL
 
                 Vector2 uvs[3];
 
@@ -438,6 +452,11 @@ void map_create_models()
 
                     mesh.texcoords[index * 2 + 0] = uvs[v].x;
                     mesh.texcoords[index * 2 + 1] = uvs[v].y;
+
+                    // Assign the face normal to each vertex
+                    mesh.normals[index * 3 + 0] = normal.x;
+                    mesh.normals[index * 3 + 1] = normal.y;
+                    mesh.normals[index * 3 + 2] = normal.z;
 
                     index++;
                 }
@@ -493,10 +512,17 @@ void map_create_models()
 
             UploadMesh(&mesh, false);
             Model model = LoadModelFromMesh(mesh);
-            model.materials[0].shader = sh_light;
-            model.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = texture;
 
             Geometry geometry;
+            geometry.func = &brush->func;
+
+            material_to_geometry(&geometry, face->texture);
+
+            if (string_equals(geometry.func->classname, "func_water")) 
+                geometry.material->shader = &sh_water;
+
+            model.materials[0].shader = *geometry.material->shader;
+            model.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = geometry.material->texture;
             geometry.model = model;
             geometry.bounds = bounds;
             geometry.collision = shape;
@@ -536,6 +562,52 @@ void map_clear_models()
 }
 
 
+static void map_draw_decals()
+{
+    rlDisableBackfaceCulling();
+    BeginBlendMode(BLEND_ALPHA);
+
+        for (int i=0; i<MAX_BULLET_HOLES; i++)
+        {
+            Decal *bh = &bullet_holes[i];
+            if (bh->active == false) continue;
+            Vector3 normal = bh->normal;
+            
+            Vector3 world_up = (Vector3){0, 1, 0};
+                if (fabsf(Vector3DotProduct(world_up, normal)) > 0.99f)
+                    world_up = (Vector3){1, 0, 0};
+
+                Vector3 right = Vector3Normalize(Vector3CrossProduct(world_up, normal));
+                Vector3 up = Vector3CrossProduct(normal, right);
+
+                float half_size = bullet_holes[i].size * 0.5f;
+                Vector3 center = bullet_holes[i].position;
+
+                Vector3 corner1 = Vector3Add(center, Vector3Scale(Vector3Add(Vector3Negate(right), up), half_size));
+                Vector3 corner2 = Vector3Add(center, Vector3Scale(Vector3Add(right, up), half_size));
+                Vector3 corner3 = Vector3Add(center, Vector3Scale(Vector3Add(right, Vector3Negate(up)), half_size));
+                Vector3 corner4 = Vector3Add(center, Vector3Scale(Vector3Add(Vector3Negate(right), Vector3Negate(up)), half_size));
+
+                rlSetTexture(bullet_holes[i].texture.id);
+
+                rlBegin(RL_QUADS);
+                    rlNormal3f(normal.x, normal.y, normal.z);
+
+                    rlTexCoord2f(0, 0); rlVertex3f(corner1.x, corner1.y, corner1.z);
+                    rlTexCoord2f(1, 0); rlVertex3f(corner2.x, corner2.y, corner2.z);
+                    rlTexCoord2f(1, 1); rlVertex3f(corner3.x, corner3.y, corner3.z);
+                    rlTexCoord2f(0, 1); rlVertex3f(corner4.x, corner4.y, corner4.z);
+                rlEnd();
+
+                rlSetTexture(0);
+            }
+
+    rlEnableBackfaceCulling();
+    EndBlendMode();
+    
+}
+
+
 /*
 map_draw
 -- draw all polygons generated in the map
@@ -545,13 +617,40 @@ void map_draw()
     map_draw_models();
 }
 
+
+static void BeginWaterMode(Geometry *geo)
+{
+    // func_water effects
+    if (string_equals(geo->func->classname, "func_water"))
+    {
+        rlDisableBackfaceCulling();
+        BeginBlendMode(BLEND_ALPHA);
+        int loc_alpha = GetShaderLocation(sh_water, "water_alpha");
+        SetShaderValue(sh_water, loc_alpha, &geo->func->alpha, SHADER_UNIFORM_FLOAT);
+    }
+}
+static void EndWaterMode(Geometry *geo)
+{
+    // Reset Water Effects
+    if (string_equals(geo->func->classname, "func_water"))
+    {
+        rlEnableBackfaceCulling();
+        EndBlendMode();
+    }
+}
+
+
 #include "player.h"
+static int frame_count = 0;
 /*
 map_draw_models
 -- draws each model in the model array
 */
 void map_draw_models()
 {
+    frame_count++;
+    if (frame_count > 100) frame_count = 0;
+
     for (int i = 0; i < map.model_count; i++)
     {
         Geometry *geo = &map.models[i];
@@ -560,22 +659,35 @@ void map_draw_models()
         // check distance to player
         if (distance_to_pos(geo->position, 
         player.gameobject.position, RENDER_DISTANCE) == false) 
+        {
+            geo->was_visible_lastframe = false;
             continue; // too far to care
+        }
 
-        // cheap frustum check
-        if (!frustum_check_sphere(geo->position, geo->bounding_radius, global_frustum)) 
-            continue; 
+        // only run the check every 5 frames
+        if (frame_count % 2 == 0)
+        {
+            // cheap frustum check - this one sucks
+            //if (!frustum_check_sphere(geo->position, geo->bounding_radius, global_frustum)) 
+            //  continue; 
 
-        // expensive frustum check not sure if we need anymore
-        // since the cheap one seems to always work and is much cheaper
-        // if (!frustum_check_boundingbox(geo->bounds, global_frustum)) 
-        //     continue;
+            // expensive frustum check
+            geo->was_visible_lastframe = frustum_check_boundingbox(geo->bounds, global_frustum);
+        }
 
-        raycast_check_bb(geo->bounds);
-        geo->model.materials[0].shader = sh_light;
+        if (geo->was_visible_lastframe == false) continue;
+
+        if (strcmp(geo->func->classname, "func_water") != 0)
+            raycast_check_poly(geo->collision);
+    
         geo->visible = true;
-        map_draw_model(geo->model);
-        
+        geo->material->shader = &sh_light;
+
+        // Draw the map and decals
+        BeginWaterMode(geo);
+            map_draw_model(geo->model);
+            map_draw_decals();
+        EndWaterMode(geo);
     }
 }
 
@@ -587,8 +699,8 @@ If DEBUG flag enabled will draw wire frames as well
 */
 #ifdef DEBUG
 void map_draw_model(Model model){
-    DrawModel(model, (Vector3){0}, 1.0f, WHITE);
-    DrawModelWires(model, (Vector3){0}, 1.0f, RED);
+    //DrawModel(model, (Vector3){0}, 1.0f, WHITE);
+    //DrawModelWires(model, (Vector3){0}, 1.0f, RED);
 }
 #else
 void map_draw_model(Model model){

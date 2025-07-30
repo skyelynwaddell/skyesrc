@@ -12,6 +12,7 @@ int global_console_open = false;
 
 // --- Shaders ---
 Shader sh_light;
+Shader sh_water;
 Shader sh_viewmodel;
 
 // --- Shader Properties ---
@@ -86,6 +87,9 @@ int global_player_shooting = false;
 int global_player_moving = false;
 int global_player_onXwall = false;
 int global_player_onZwall = false;
+int global_player_crouchboost = false;
+int global_player_inwater = false;
+float PLAYER_STEP_HEIGHT = 2.0f;
 
 int player_on_wall() { return global_player_onXwall || global_player_onZwall; }
 

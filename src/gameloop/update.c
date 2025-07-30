@@ -14,6 +14,11 @@ void update()
     if (global_paused) return; // If the game is paused, skip the update logic
     raycast_start();
 
+    float time = GetTime();
+int loc = GetShaderLocation(sh_water, "time");
+SetShaderValue(sh_water, loc, &time, SHADER_UNIFORM_FLOAT);
+
+
     #ifdef DEV_MODE
         map_hotreload();
     #endif

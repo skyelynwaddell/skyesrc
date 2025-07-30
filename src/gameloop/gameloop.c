@@ -38,13 +38,11 @@ int gameloop()
                 // 3D World
                 // -----------------------------
                 BeginMode3D(camera);
-                BeginShaderMode(sh_light);
 
                     draw();
                     player_draw();
                     enemy_draw_all();
 
-                EndShaderMode();
                 EndMode3D();
 
                 // View Model

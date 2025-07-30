@@ -15,7 +15,7 @@ typedef struct dentry_t			 // A Directory entry
 
 typedef struct dheader_t		 // The BSP file header
 {
-    int32_t  version;            // Model version, must be 0x17 (23).
+    int32_t  version;            // Model version
     dentry_t entities;           // List of Entities.
     dentry_t planes;             // Map Planes. // numplanes = size/sizeof(plane_t)
     dentry_t miptex;             // Wall Textures.

@@ -146,15 +146,11 @@ void camera_follow_player(Camera3D *camera, GameObject *target)
                 camera->position.y += bob_offset;
                 camera_bob_phase += delta * camera_bob_speed;
                 viewmodel.position.z += bob_offset * weapon_bob;
-                //viewmodel.position.x = Lerp(viewmodel.position.x, base_viewmodel_pos.x, ls);
-                //viewmodel.position.y = Lerp(viewmodel.position.y, base_viewmodel_pos.y, ls);
             }
             else
             {
                 // Player is on floor, not moving
                 // Return weapon to normal pose
-                //viewmodel.position.x = Lerp(viewmodel.position.x, base_viewmodel_pos.x, ls);
-                //viewmodel.position.y = Lerp(viewmodel.position.y, base_viewmodel_pos.y, ls);
                 viewmodel.position.z = Lerp(viewmodel.position.z, base_viewmodel_pos.z, ls);
                 camera_bob_phase = 0.0f;
             }
@@ -166,7 +162,6 @@ void camera_follow_player(Camera3D *camera, GameObject *target)
                 // Player is in the air
                 // Offset the weapon a bit lower
                 bob_offset = 0.0;
-                //viewmodel.position.x = Lerp(viewmodel.position.x, base_viewmodel_pos.x, ls);
                 viewmodel.position.y = Lerp(viewmodel.position.y, base_viewmodel_pos.y-1, ls);
                 viewmodel.position.z = Lerp(viewmodel.position.z, base_viewmodel_pos.z, ls);
                 camera_bob_phase = 0.0f;

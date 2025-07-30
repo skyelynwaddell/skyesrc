@@ -38,12 +38,24 @@ void init()
     SetWindowMinSize(320, 240);
     SetConfigFlags(FLAG_WINDOW_RESIZABLE);
 
+
     InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, GAME_TITLE);
     DisableCursor(); // Limit cursor to relative movement inside the window
     SetTextureFilter(target.texture, TEXTURE_FILTER_BILINEAR);  // Texture scale filter to use
     SetTargetFPS(FPS);
 
+        sh_water = LoadShader(TextFormat("shaders/glsl%i/water.vs", GLSL_VERSION),
+                        TextFormat("shaders/glsl%i/water.fs", GLSL_VERSION));
+
+
+
     console_init();
+
+
+    for (int i=0; i<MAX_BULLET_HOLES; i++)
+    {
+        bullet_holes[i].active = false;
+    }
 
     char raylib_version_string[64];
     snprintf(raylib_version_string, sizeof(raylib_version_string),
