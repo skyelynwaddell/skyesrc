@@ -141,23 +141,23 @@ int map_parse(const char* filename)
                     }
 
                     // light
-                    // if (string_equals(current_entity.classname, "light"))
-                    // {
-                    //     LightObject new_light = light_create(
-                    //         (Color){
-                    //             current_entity.color.r,
-                    //             current_entity.color.g,
-                    //             current_entity.color.b,
-                    //             current_entity.color.a
-                    //         },
-                    //         (float)current_entity.brightness,
-                    //         trench_to_raylib_origin(current_entity.origin),
-                    //         (float)current_entity.radius
-                    //     );
+                    if (string_equals(current_entity.classname, "light"))
+                    {
+                        LightObject new_light = light_create(
+                            (Color){
+                                current_entity.color.r,
+                                current_entity.color.g,
+                                current_entity.color.b,
+                                current_entity.color.a
+                            },
+                            (float)current_entity.brightness,
+                            trench_to_raylib_origin(current_entity.origin),
+                            (float)current_entity.radius
+                        );
 
-                    //     // create & store light object
-                    //     map.lights[map.light_count++] = new_light; 
-                    // }
+                        // create & store light object
+                        map.lights[map.light_count++] = new_light; 
+                    }
 
                     // monster_shotgunner
                     if (string_equals(current_entity.classname, "monster_shotgunner"))
@@ -562,6 +562,11 @@ void map_clear_models()
 }
 
 
+/*
+map_draw_decals
+-- draws all the decals in the map
+-- currently only bullet holes
+*/
 static void map_draw_decals()
 {
     rlDisableBackfaceCulling();

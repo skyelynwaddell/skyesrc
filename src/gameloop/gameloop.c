@@ -15,7 +15,7 @@ int gameloop()
     // --- ENET Client Initialization ---
     // TODO : Move this to a multiplayer connection screen
     // after main menu is made
-    server_online = false;
+    server_online = true;
     enetclient_init();
 
     // Main Game Loop

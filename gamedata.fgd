@@ -46,8 +46,15 @@
 //Default Brush
 @SolidClass base(brush) = func_default : "All brushes must inherit from this if to be culled" []
 
+//Portal Brush
+@SolidClass base(brush) = func_portal : "Portal" 
+[
+	show_sector(integer) : "Which sector to show when looking at, or after colliding with this portal"
+	hide_sector(integer) : "Which sector to hide when NOT looking at, or after colliding with this portal"
+]
+
 //Water
-@SolidClass base(brush_default) = func_water : "Water" 
+@SolidClass base(brush) = func_water : "Water" 
 [
 	alpha(float) : "Alpha" : 0.8 : "How transparent the liquid is"
 	is_dangerous(choices) : "Is this liquid dangerous?" : 0 =

@@ -15,8 +15,8 @@ void update()
     raycast_start();
 
     float time = GetTime();
-int loc = GetShaderLocation(sh_water, "time");
-SetShaderValue(sh_water, loc, &time, SHADER_UNIFORM_FLOAT);
+    int loc = GetShaderLocation(sh_water, "time");
+    SetShaderValue(sh_water, loc, &time, SHADER_UNIFORM_FLOAT);
 
 
     #ifdef DEV_MODE

@@ -57,7 +57,7 @@ void weapons_init()
         6,                                    // mag_size
         0.25,                                 // animation duration
         0.15,                                 // shoot_cooldown
-        "arms_newpistol/arms_newpistol.glb",  // model_filepath
+        "arms_newpistol/arms_newpistol2.glb",  // model_filepath
         1.5,                                  // model_scale
         6,                                    // anim_count
         {0},                                  // model_textures (set below)

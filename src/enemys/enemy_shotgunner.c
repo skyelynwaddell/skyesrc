@@ -15,7 +15,7 @@ static void shotgunner_handle_hurt(Enemy *mon)
 
         if (mon->health <= 0)
         {
-            int death_anim = ANIM_SHOTGUNNER_DEATH_1 + (rand() % 4);
+            int death_anim = ANIM_SHOTGUNNER_DEATH_1; //+ (rand() % 2);
             enemy_change_state(mon, STATE_DEAD, death_anim);
 
             return;

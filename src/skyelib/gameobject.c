@@ -163,7 +163,6 @@ void apply_gravity(GameObject *obj)
     obj->velocity.y += _grvty * GetFrameTime();
 }
 
-
 /*
 check_collisions
 Handles all the X Y Z collisions between obj and walls/floors/ceilings
@@ -172,7 +171,6 @@ void check_collisions(GameObject *obj, int is_player, COLLISION_MASK mask)
 {
     Vector3 original_pos = obj->position;
     float dt = GetFrameTime();
-
 
     // ---- Y axis (gravity + jump) ----
     Vector3 moveY = { 0.0f, obj->velocity.y * dt, 0.0f };
@@ -226,7 +224,9 @@ void check_collisions(GameObject *obj, int is_player, COLLISION_MASK mask)
 
         collisionbox_set_position(&obj->collision_box, tryStep);
         if (!place_meeting_solid(obj, mask, is_player)) {
-            obj->position = tryStep;
+            obj->position.y = Lerp(obj->position.y, tryStep.y, 0.1f);
+            obj->position.x = Lerp(obj->position.x, tryStep.x, 0.1f);
+
             obj->velocity.y = 0.0f;
             if (is_player) global_player_onXwall = false;
         } else {
@@ -253,7 +253,9 @@ void check_collisions(GameObject *obj, int is_player, COLLISION_MASK mask)
 
         collisionbox_set_position(&obj->collision_box, tryStep);
         if (!place_meeting_solid(obj, mask, is_player)) {
-            obj->position = tryStep;
+            obj->position.y = Lerp(obj->position.y, tryStep.y, 0.1f);
+            obj->position.z = Lerp(obj->position.z, tryStep.z, 0.1f);
+
             obj->velocity.y = 0.0f;
             if (is_player) global_player_onZwall = false;
         } else {
